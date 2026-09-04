@@ -17,8 +17,6 @@ RUN composer dump-autoload --optimize
 
 FROM php:8.4-fpm-alpine
 
-RUN apk add --no-cache curl zip unzip git nodejs npm
-
 WORKDIR /var/www/html
 
 COPY --from=builder /var/www/html /var/www/html

@@ -3,6 +3,7 @@ services:
     build: .
     container_name: app
     restart: unless-stopped
+    env_file: .env
     environment:
       - APP_ENV=production
       - APP_DEBUG=false
@@ -12,7 +13,11 @@ services:
       - DB_DATABASE=${DB_DATABASE:-porto_1}
       - DB_USER=${DB_USER:-user}
       - DB_PASSWORD=${DB_PASSWORD:-password}
+      - QUEUE_CONNECTION=database
+      - CACHE_STORE=database
+      - SESSION_DRIVER=database
     volumes:
+      - ./.env:/var/www/html/.env
       - app-storage:/var/www/html/storage
     depends_on:
       db:
@@ -40,11 +45,12 @@ services:
     image: mysql:8.0
     container_name: db
     restart: unless-stopped
+    env_file: .env
     environment:
-      MYSQL_DATABASE: ${DB_DATABASE:-porto_1}
-      MYSQL_USER: ${DB_USER:-user}
-      MYSQL_PASSWORD: ${DB_PASSWORD:-password}
-      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-password}
+      - MYSQL_DATABASE=${DB_DATABASE:-porto_1}
+      - MYSQL_USER=${DB_USER:-user}
+      - MYSQL_PASSWORD=${DB_PASSWORD:-password}
+      - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD:-password}
     volumes:
       - db-data:/var/lib/mysql
     healthcheck:
