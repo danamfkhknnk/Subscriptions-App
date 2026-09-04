@@ -1,80 +1,263 @@
-# Subscription App - SaaS Billing Demo
+# Calculator Premium
 
-A SaaS billing demo application built with Laravel, Stripe, Livewire, and Tailwind CSS.
+A premium calculator app with subscription billing powered by Stripe.
+
+## Demo Credentials
+
+| Role | Email | Password |
+|------|-------|----------|
+| Admin | admin@demo.com | password |
+| Subscriber | alice@demo.com | password |
 
 ## Tech Stack
 
-- **Framework:** Laravel 13
-- **UI:** Livewire v4 + Tailwind CSS v4
-- **Payments:** Laravel Cashier (Stripe) v16
-- **Database:** MySQL 8.0
-- **Cache & Queue:** Redis 7
-- **Frontend:** Vite
+- Laravel 13 + PHP 8.4
+- Livewire Volt
+- Stripe (Cashier)
+- Docker + Nginx
+- MySQL 8.0 + Redis
 
-## Prerequisites
+---
 
-- PHP 8.3+
+## Local Development
+
+### Prerequisites
+
+- PHP 8.4+
 - Composer
 - Node.js & npm
-- Docker & Docker Compose
+- Docker (for MySQL & Redis)
 
-## Setup
+### Setup
 
 ```bash
-# Start Docker services
-docker compose up -d
+# 1. Clone
+git clone <repo-url>
+cd Subscriptions-App
 
-# Install PHP dependencies
-composer install
-
-# Install JS dependencies
-npm install
-
-# Copy .env and generate app key
+# 2. Env
 cp .env.example .env
 php artisan key:generate
 
-# Run migrations
-php artisan migrate
+# 3. Install dependencies
+composer install
+npm install && npm run build
 
-# Build frontend assets
-npm run build
+# 4. Start MySQL & Redis only
+docker compose up -d
 
-# Start development server
-composer dev
+# 5. Update .env
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=porto_1
+DB_USER=user
+DB_PASSWORD=password
+DB_ROOT_PASSWORD=password
+
+# 6. Stripe keys (from Dashboard → Developers → API Keys)
+STRIPE_KEY=pk_test_xxxxx
+STRIPE_SECRET=sk_test_xxxxx
+
+# 7. Migrate & seed
+php artisan migrate:fresh --seed
+
+# 8. Stripe webhook (run in separate terminal)
+stripe listen --forward-to localhost:8000/stripe/webhook
+# Copy signing secret to .env:
+# STRIPE_WEBHOOK_SECRET=whsec_xxxxx
+
+# 9. Run dev server
+php artisan serve
+# or
+npm run dev
 ```
 
-## Stripe Test Mode
+### Local Services
 
-This application uses Stripe test mode. Use the following test credentials:
+| Service | URL |
+|---------|-----|
+| App | http://localhost:8000 |
+| phpMyAdmin | http://localhost:8080 |
+| MySQL | localhost:3306 |
+| Redis | localhost:6579 |
 
-- **Card number:** `4242 4242 4242 4242`
-- **CVC:** Any 3 digits
-- **Expiry:** Any future date
-
-For webhook testing locally, use the [Stripe CLI](https://docs.stripe.com/stripe-cli):
+### Local Commands
 
 ```bash
-stripe listen --forward-to localhost:8000/stripe/webhook
+php artisan serve                   # Start dev server
+php artisan migrate:fresh --seed   # Reset DB
+php artisan tinker                 # PHP REPL
+npm run build                      # Rebuild assets
+
+# Docker (MySQL & Redis only)
+docker compose up -d               # Start DB & Redis
+docker compose down                # Stop DB & Redis
+docker compose logs -f             # Follow logs
 ```
 
-## Dunning & Failed Payment Retries
+---
 
-Failed subscription payments are recovered by Stripe's **Smart Retries**, which are
-configured in the Stripe dashboard rather than in code:
+## Production Deploy
 
-1. Enable **Smart Retries** under **Stripe Dashboard → Billing → Emails & retries**.
-   Stripe then retries failed invoices on an automatic schedule (roughly every few days)
-   before the subscription is ultimately canceled.
-2. When a payment fails, Stripe marks the subscription `past_due` and fires
-   `invoice.payment_failed` + `customer.subscription.updated`. The webhook
-   (`app/Http/Controllers/WebhookController.php`) syncs the local status and notifies
-   the subscriber; the dashboard shows the `past_due` status with an
-   **Update Payment Method** button that opens the Stripe Customer Portal.
-3. When a retry succeeds, Stripe fires `customer.subscription.updated` (status back to
-   `active`) plus `invoice.payment_succeeded` — the webhook restores the local status
-   and notifies the subscriber again.
+### Prerequisites
 
-## License
+- Server with Docker & Docker Compose
+- Stripe account (test or live mode)
+- Cloudflared tunnel (or any reverse proxy)
 
-MIT
+### Step 1: Clone & Env
+
+```bash
+git clone <repo-url> /var/www/Subscriptions-App
+cd /var/www/Subscriptions-App
+
+cp .env.example .env
+```
+
+### Step 2: Configure .env
+
+```env
+APP_NAME="Calculator Premium"
+APP_ENV=production
+APP_DEBUG=false
+APP_URL=https://subscription.danaworkspace.my.id
+
+DB_CONNECTION=mysql
+DB_HOST=mysql
+DB_PORT=3306
+DB_DATABASE=porto_1
+DB_USER=user
+DB_PASSWORD=password
+DB_ROOT_PASSWORD=password
+
+CACHE_STORE=database
+SESSION_DRIVER=database
+QUEUE_CONNECTION=database
+```
+
+### Step 3: Stripe Keys
+
+From **Stripe Dashboard → Developers → API Keys**:
+
+```env
+STRIPE_KEY=pk_test_xxxxx
+STRIPE_SECRET=sk_test_xxxxx
+```
+
+### Step 4: Build & Run
+
+```bash
+# Build containers
+docker compose -f docker-compose.prod.yaml up --build -d
+
+# Migrate
+docker compose -f docker-compose.prod.yaml exec app php artisan migrate --force
+
+# Seed (creates plans via Stripe API + 10 demo subscribers)
+docker compose -f docker-compose.prod.yaml exec app php artisan migrate:fresh --seed --force
+```
+
+### Step 5: Stripe Webhook
+
+**Option A: Stripe CLI (recommended for testing)**
+```bash
+stripe listen --forward-to https://subscription.danaworkspace.my.id/stripe/webhook
+```
+
+**Option B: Stripe Dashboard**
+1. Go to **Developers → Webhooks → Add endpoint**
+2. URL: `https://subscription.danaworkspace.my.id/stripe/webhook`
+3. Events:
+   - `checkout.session.completed`
+   - `customer.subscription.created`
+   - `customer.subscription.updated`
+   - `customer.subscription.deleted`
+   - `customer.subscription.trial_will_end`
+   - `invoice.payment_succeeded`
+   - `invoice.payment_failed`
+4. Copy **Signing secret** → add to `.env`:
+
+```env
+STRIPE_WEBHOOK_SECRET=whsec_xxxxx
+```
+
+```bash
+# Rebuild to apply webhook secret
+docker compose -f docker-compose.prod.yaml up --build -d
+```
+
+### Step 6: Cloudflared Tunnel
+
+Add to `/etc/cloudflared/config.yml`:
+
+```yaml
+  - hostname: subscription.danaworkspace.my.id
+    service: http://localhost:8080
+```
+
+```bash
+sudo systemctl restart cloudflared
+```
+
+### Step 7: Verify
+
+```bash
+# Check containers
+docker compose -f docker-compose.prod.yaml ps
+
+# Check app logs
+docker compose -f docker-compose.prod.yaml logs -f app
+
+# Test webhook
+curl -X POST https://subscription.danaworkspace.my.id/stripe/webhook
+```
+
+### Production Commands
+
+```bash
+# Rebuild & restart
+docker compose -f docker-compose.prod.yaml up --build -d
+
+# Stop
+docker compose -f docker-compose.prod.yaml down
+
+# Logs
+docker compose -f docker-compose.prod.yaml logs -f app
+
+# Shell
+docker compose -f docker-compose.prod.yaml exec app sh
+
+# Re-seed
+docker compose -f docker-compose.prod.yaml exec app php artisan migrate:fresh --seed --force
+
+# Clear cache
+docker compose -f docker-compose.prod.yaml exec app php artisan config:clear
+docker compose -f docker-compose.prod.yaml exec app php artisan cache:clear
+```
+
+---
+
+## Project Structure
+
+```
+├── app/
+│   ├── Http/Controllers/
+│   │   ├── CheckoutController.php
+│   │   ├── ImpersonateController.php
+│   │   └── WebhookController.php
+│   ├── Livewire/
+│   │   └── Calculator.php
+│   └── Models/
+│       ├── Plan.php
+│       └── User.php
+├── database/seeders/
+│   ├── AdminSeeder.php
+│   ├── DemoSubscriberSeeder.php
+│   └── PlanSeeder.php
+├── docker/
+│   └── nginx/default.conf
+├── Dockerfile
+├── docker-compose.yaml          # Local dev
+└── docker-compose.prod.yaml     # Production
+```

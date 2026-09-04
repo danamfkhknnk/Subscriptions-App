@@ -76,6 +76,11 @@
                             <x-icon name="users" class="w-5 h-5 shrink-0" />
                             Customers
                         </a>
+                        <a href="{{ route('admin.transactions') }}"
+                           class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 {{ request()->routeIs('admin.transactions') ? 'bg-indigo-50 text-indigo-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}" wire:navigate>
+                            <x-icon name="credit-card" class="w-5 h-5 shrink-0" />
+                            Transactions
+                        </a>
                     @else
                         <a href="{{ route('dashboard') }}"
                            class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 {{ request()->routeIs('dashboard') ? 'bg-indigo-50 text-indigo-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}" wire:navigate>
@@ -160,6 +165,8 @@
                             Admin Dashboard
                         @elseif(request()->routeIs('admin.customers') || request()->routeIs('admin.customer-detail'))
                             Customers
+                        @elseif(request()->routeIs('admin.transactions'))
+                            Transactions
                         @elseif(request()->routeIs('dashboard'))
                             Dashboard
                         @elseif(request()->routeIs('plans'))
