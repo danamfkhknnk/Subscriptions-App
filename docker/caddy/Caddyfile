@@ -1,19 +1,15 @@
 :80 {
 	root * /var/www/html/public
 
-	# Serve static files directly
 	file_server
 
-	# PHP-FPM
-	fastcgi * unix//var/run/php-fpm.sock {
+	fastcgi * app:9000 {
 		index index.php
 		split .php
 	}
 
-	# Laravel pretty URLs
 	try_files {path} {path}/ /index.php?{query}
 
-	# Security headers
 	header {
 		X-Content-Type-Options nosniff
 		X-Frame-Options DENY
@@ -21,10 +17,8 @@
 		-X-XSS-Protection "1; mode=block"
 	}
 
-	# Compress responses
 	encode gzip zstd
 
-	# Log errors
 	log {
 		output stderr
 		format console
