@@ -3,17 +3,10 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      args:
-        BUILDKIT_INLINE_CACHE: 1
     container_name: app
     restart: unless-stopped
     ports:
-      - "80:80"
-    depends_on:
-      mysql:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+      - "8080:80"
     env_file:
       .env
 
