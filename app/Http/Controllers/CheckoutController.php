@@ -59,6 +59,12 @@ class CheckoutController extends Controller
      */
     public function success(Request $request)
     {
+        // Stripe always appends ?session_id={CHECKOUT_SESSION_ID}. A direct
+        // visit without it is not a real checkout completion.
+        if (! $request->filled('session_id')) {
+            return redirect()->route('plans');
+        }
+
         return view('checkout.success');
     }
 }

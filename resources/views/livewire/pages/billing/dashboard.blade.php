@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Plan;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 use Laravel\Cashier\Exceptions\IncompletePayment;
 use Laravel\Cashier\Exceptions\SubscriptionUpdateFailure;
@@ -10,13 +11,21 @@ use Livewire\Volt\Component;
 new #[Layout('layouts.app')] class extends Component
 {
     public $user;
+
     public $subscription;
+
     public $currentPlan;
+
     public $hasActiveSubscription = false;
+
     public $isOnTrial = false;
+
     public $isPastDue = false;
+
     public $isCanceled = false;
+
     public $trialEndsAt;
+
     public $currentPeriodEnd;
 
     public function mount(): void
@@ -30,17 +39,21 @@ new #[Layout('layouts.app')] class extends Component
         $this->subscription = $this->user->subscription('default');
 
         if ($this->subscription) {
-            $this->hasActiveSubscription = $this->subscription->active();
+            // Past-due subscriptions are intentionally included so the status
+            // card (with the Past Due badge and recovery action) renders instead
+            // of the "No Active Subscription" empty state.
+            $this->hasActiveSubscription = $this->subscription->active() || $this->subscription->pastDue();
             $this->isOnTrial = $this->subscription->onTrial();
             $this->isPastDue = $this->subscription->pastDue();
             $this->isCanceled = $this->subscription->canceled();
             $this->trialEndsAt = $this->subscription->trial_ends_at;
 
             // During a trial the first charge date is the trial end date;
-            // otherwise it is the (cancellation) end date when set.
+            // otherwise resolve the real renewal date from Stripe's
+            // current_period_end (ends_at is only set when canceled).
             $this->currentPeriodEnd = $this->isOnTrial
                 ? $this->subscription->trial_ends_at
-                : $this->subscription->ends_at;
+                : $this->resolvePeriodEnd();
 
             $stripePriceId = $this->subscription->stripe_price;
             $this->currentPlan = Plan::where('stripe_price_id', $stripePriceId)->first();
@@ -65,12 +78,14 @@ new #[Layout('layouts.app')] class extends Component
         // Guard: must have an active subscription
         if (! $this->subscription || ! $this->hasActiveSubscription) {
             session()->flash('error', 'You need an active subscription to change plans.');
+
             return;
         }
 
         // Guard: same plan — nothing to do
         if ($this->currentPlan && $this->currentPlan->id === $plan->id) {
             session()->flash('info', 'You are already on this plan.');
+
             return;
         }
 
@@ -121,7 +136,7 @@ new #[Layout('layouts.app')] class extends Component
                 'user_id' => $this->user->id,
                 'message' => $e->getMessage(),
             ]);
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             session()->flash('error', 'Failed to change plan. Please try again or contact support.');
             Log::error('Plan swap failed', [
                 'user_id' => $this->user->id,
@@ -180,6 +195,33 @@ new #[Layout('layouts.app')] class extends Component
         $this->redirect($url, navigate: false);
     }
 
+    /**
+     * Resolve the next billing date for a non-trial subscription.
+     *
+     * Prefers Stripe's current_period_end; falls back to the local ends_at
+     * (canceled subscriptions) or null when Stripe is unreachable.
+     */
+    private function resolvePeriodEnd(): ?\Carbon\CarbonInterface
+    {
+        if ($this->subscription->ends_at) {
+            return $this->subscription->ends_at;
+        }
+
+        try {
+            $stripeSubscription = $this->subscription->asStripeSubscription();
+
+            if (isset($stripeSubscription->current_period_end)) {
+                return Carbon::createFromTimestamp($stripeSubscription->current_period_end);
+            }
+        } catch (Throwable $e) {
+            Log::warning('Failed to resolve current_period_end from Stripe', [
+                'subscription_id' => $this->subscription->id,
+                'message' => $e->getMessage(),
+            ]);
+        }
+
+        return null;
+    }
 }; ?>
 
 <div>
@@ -298,9 +340,16 @@ new #[Layout('layouts.app')] class extends Component
                             <x-icon name="exclamation-triangle" class="w-5 h-5 text-yellow-600 mr-3 shrink-0" />
                             <div>
                                 <p class="font-semibold text-yellow-800">Payment Failed</p>
-                                <p class="text-sm text-yellow-700">Your last payment failed. Please update your payment method to continue service.</p>
+                                <p class="text-sm text-yellow-700">Your last payment failed. Stripe will retry automatically — update your payment method to avoid interruption.</p>
                             </div>
                         </div>
+                        <button
+                            wire:click="openPortal"
+                            class="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-yellow-600 text-white text-sm font-medium rounded-lg hover:bg-yellow-700 transition"
+                        >
+                            <x-icon name="credit-card" class="w-4 h-4" />
+                            Update Payment Method
+                        </button>
                     </div>
                 @endif
 

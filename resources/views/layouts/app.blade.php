@@ -51,8 +51,8 @@
                 {{-- Sidebar Header --}}
                 <div class="flex items-center gap-3 px-6 h-16 border-b border-gray-100 shrink-0">
                     <a href="{{ auth()->user()->isAdmin() ? route('admin.dashboard') : route('dashboard') }}" class="flex items-center gap-3" wire:navigate>
-                        <div class="w-9 h-9 bg-indigo-600 rounded-xl flex items-center justify-center">
-                            <x-icon name="bolt" class="w-5 h-5 text-white" />
+                        <div class="w-9 h-9 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center">
+                            <x-icon name="calculator" class="w-5 h-5 text-white" />
                         </div>
                         <span class="text-lg font-bold text-gray-900">{{ config('app.name', 'Laravel') }}</span>
                     </a>
@@ -71,6 +71,11 @@
                             <x-icon name="home" class="w-5 h-5 shrink-0" />
                             Dashboard
                         </a>
+                        <a href="{{ route('admin.customers') }}"
+                           class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 {{ request()->routeIs('admin.customers') || request()->routeIs('admin.customer-detail') ? 'bg-indigo-50 text-indigo-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}" wire:navigate>
+                            <x-icon name="users" class="w-5 h-5 shrink-0" />
+                            Customers
+                        </a>
                     @else
                         <a href="{{ route('dashboard') }}"
                            class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 {{ request()->routeIs('dashboard') ? 'bg-indigo-50 text-indigo-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}" wire:navigate>
@@ -87,6 +92,26 @@
                             <x-icon name="credit-card" class="w-5 h-5 shrink-0" />
                             Transactions
                         </a>
+
+                        @php
+                            $sub = auth()->user()->subscription('default');
+                            $isAccessible = ! $sub || $sub->active() || $sub->onTrial();
+                        @endphp
+
+                        @if($isAccessible)
+                            <a href="{{ route('calculator') }}"
+                               class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 {{ request()->routeIs('calculator') ? 'bg-indigo-50 text-indigo-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}" wire:navigate>
+                                <x-icon name="calculator" class="w-5 h-5 shrink-0" />
+                                Calculator
+                            </a>
+                        @else
+                            <a href="{{ route('plans') }}"
+                               class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-400 cursor-not-allowed" wire:navigate>
+                                <x-icon name="calculator" class="w-5 h-5 shrink-0" />
+                                Calculator
+                                <x-icon name="lock-closed" class="w-3.5 h-3.5 ml-auto shrink-0" />
+                            </a>
+                        @endif
                     @endif
                 </nav>
 
@@ -133,12 +158,16 @@
                     <h1 class="text-lg font-semibold text-gray-900">
                         @if(request()->routeIs('admin.dashboard'))
                             Admin Dashboard
+                        @elseif(request()->routeIs('admin.customers') || request()->routeIs('admin.customer-detail'))
+                            Customers
                         @elseif(request()->routeIs('dashboard'))
                             Dashboard
                         @elseif(request()->routeIs('plans'))
                             Subscription Plans
                         @elseif(request()->routeIs('transactions'))
                             Payment History
+                        @elseif(request()->routeIs('calculator'))
+                            Calculator
                         @elseif(request()->routeIs('profile'))
                             Profile Settings
                         @else
@@ -154,6 +183,27 @@
                         </span>
                     </div>
                 </header>
+
+                {{-- Impersonation Banner --}}
+                @if(session()->has('impersonator_id'))
+                    <div class="bg-indigo-600 px-4 sm:px-6 lg:px-8 py-3">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <x-icon name="user-circle" class="w-5 h-5 text-white" />
+                                <p class="text-sm text-white">
+                                    You are viewing as <span class="font-semibold">{{ auth()->user()->name }}</span>
+                                </p>
+                            </div>
+                            <form method="POST" action="{{ route('stop-impersonate') }}">
+                                @csrf
+                                <button type="submit" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/20 text-white text-xs font-medium rounded-lg hover:bg-white/30 transition">
+                                    <x-icon name="arrow-left-on-rectangle" class="w-3.5 h-3.5" />
+                                    Back to Admin
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                @endif
 
                 {{-- Page Content --}}
                 <main class="flex-1 p-4 sm:p-6 lg:p-8">

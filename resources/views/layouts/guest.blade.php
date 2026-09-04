@@ -34,16 +34,16 @@
                 <div class="relative z-10 flex flex-col justify-center px-12 xl:px-16 w-full">
                     <a href="/" class="inline-flex items-center gap-2 mb-8">
                         <div class="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
-                            <x-icon name="bolt" class="w-6 h-6 text-white" />
+                            <x-icon name="calculator" class="w-6 h-6 text-white" />
                         </div>
-                        <span class="text-xl font-bold text-white">{{ config('app.name', 'Laravel') }}</span>
+                        <span class="text-xl font-bold text-white">{{ config('app.name') }}</span>
                     </a>
 
                     <h1 class="text-3xl xl:text-4xl font-bold text-white leading-tight mb-4">
-                        Simple Subscription<br>Billing for Your SaaS
+                        Use Calculator Now<br>and Feel the Magic
                     </h1>
                     <p class="text-lg text-indigo-100 mb-8 max-w-md">
-                        Kelola subscription, billing, dan payment dengan mudah. Integrasi Stripe yang powerful.
+                        Calculator Premium memberikan pengalaman kalkulator terbaik. Subscribe sekarang dan rasakan keajaibannya.
                     </p>
 
                     {{-- Features --}}
@@ -58,13 +58,13 @@
                             <div class="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center shrink-0">
                                 <x-icon name="check" class="w-4 h-4 text-white" />
                             </div>
-                            <span class="text-indigo-100">Upgrade & downgrade with proration</span>
+                            <span class="text-indigo-100">Premium calculator experience</span>
                         </div>
                         <div class="flex items-center gap-3">
                             <div class="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center shrink-0">
                                 <x-icon name="check" class="w-4 h-4 text-white" />
                             </div>
-                            <span class="text-indigo-100">Stripe webhook integration</span>
+                            <span class="text-indigo-100">Feel the magic of Calculator Premium</span>
                         </div>
                     </div>
                 </div>
@@ -75,10 +75,10 @@
                 <div class="w-full max-w-md">
                     {{-- Mobile Logo --}}
                     <div class="lg:hidden flex items-center gap-2 mb-8">
-                        <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center">
-                            <x-icon name="bolt" class="w-6 h-6 text-white" />
+                        <div class="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center">
+                            <x-icon name="calculator" class="w-6 h-6 text-white" />
                         </div>
-                        <span class="text-xl font-bold text-gray-900">{{ config('app.name', 'Laravel') }}</span>
+                        <span class="text-xl font-bold text-gray-900">{{ config('app.name') }}</span>
                     </div>
 
                     {{-- Form Card --}}

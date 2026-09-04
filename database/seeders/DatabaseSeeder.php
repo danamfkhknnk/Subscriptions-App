@@ -15,11 +15,13 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
+        // Create admin user
+        $this->call(AdminSeeder::class);
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
+        // Create subscription plans (via Stripe API)
+        $this->call(PlanSeeder::class);
+
+        // Create demo subscribers with various statuses (via Stripe API)
+        $this->call(DemoSubscriberSeeder::class);
     }
 }

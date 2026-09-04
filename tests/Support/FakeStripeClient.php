@@ -2,6 +2,7 @@
 
 namespace Tests\Support;
 
+use Illuminate\Support\Str;
 use Stripe\Checkout\Session as StripeCheckoutSession;
 use Stripe\Customer as StripeCustomer;
 use Stripe\Subscription as StripeSubscription;
@@ -72,7 +73,7 @@ class FakeStripeClient
             public function create(array $params = []): StripeCustomer
             {
                 return StripeCustomer::constructFrom([
-                    'id' => 'cus_'.\Illuminate\Support\Str::random(16),
+                    'id' => 'cus_'.Str::random(16),
                     'object' => 'customer',
                 ]);
             }
@@ -124,9 +125,9 @@ class FakeStripeClient
                         $this->client->checkoutSessions[] = $params;
 
                         return StripeCheckoutSession::constructFrom([
-                            'id' => 'cs_'.\Illuminate\Support\Str::random(16),
+                            'id' => 'cs_'.Str::random(16),
                             'object' => 'checkout.session',
-                            'url' => 'https://checkout.stripe.com/c/pay/'.\Illuminate\Support\Str::random(16),
+                            'url' => 'https://checkout.stripe.com/c/pay/'.Str::random(16),
                         ]);
                     }
                 };

@@ -126,7 +126,7 @@ class WebhookController extends CashierController
         ]);
 
         if ($user = User::where('stripe_id', $customerId)->first()) {
-            $trialEndsAt = Carbon::parse($trialEnd)->format('F j, Y');
+            $trialEndsAt = Carbon::createFromTimestamp($trialEnd)->format('F j, Y');
 
             $user->notify(new TrialEndingNotification(
                 title: 'Trial Ending Soon',

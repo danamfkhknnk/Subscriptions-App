@@ -14,7 +14,7 @@ services:
       - mysql_data:/var/lib/mysql
     env_file:
       .env
-      
+
   redis:
     image: redis:7-alpine
     container_name: redis
@@ -23,7 +23,7 @@ services:
       - "6579:6379"
     volumes:
       - redis_data:/data
-    
+
   phpmyadmin:
     image: phpmyadmin
     ports:
@@ -37,7 +37,7 @@ services:
       MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
     env_file:
       .env
-  
+
 volumes:
   mysql_data:
   redis_data:
